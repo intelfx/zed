@@ -1,15 +1,13 @@
+const ZED_MANIFEST: &str = include_str!("../zed/Cargo.toml");
+
 fn main() {
-    println!("cargo:rerun-if-changed=../zed/Cargo.toml");
-    let cargo_toml =
-        std::fs::read_to_string("../zed/Cargo.toml").expect("Failed to read crates/zed/Cargo.toml");
-    let version = cargo_toml
-        .lines()
-        .find(|line| line.starts_with("version = "))
-        .expect("Version not found in crates/zed/Cargo.toml")
-        .split('=')
-        .nth(1)
-        .expect("Invalid version format")
-        .trim()
-        .trim_matches('"');
-    println!("cargo:rustc-env=ZED_PKG_VERSION={}", version);
+    println!("cargo:rerun-if-changed=build.rs");
+    let zed_cargo_toml =
+        toml_edit::ImDocument::parse(ZED_MANIFEST).expect("failed to parse zed Cargo.toml");
+    let version = zed_cargo_toml
+        .get("package")
+        .and_then(|package| package.get("version"))
+        .and_then(toml_edit::Item::as_str)
+        .expect("zed Cargo.toml must declare a package version string");
+    println!("cargo:rustc-env=ZED_PKG_VERSION={version}");
 }
