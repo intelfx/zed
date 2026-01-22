@@ -5297,6 +5297,7 @@ version = "0.1.0"
 dependencies = [
  "anthropic",
  "anyhow",
+ "cargo_toml",
  "chrono",
  "clap",
  "client",
