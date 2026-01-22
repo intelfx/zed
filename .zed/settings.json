@@ -31,6 +31,7 @@
       "formatter": "prettier",
     },
     "Rust": {
+      "tab_size": 4,
       "tasks": {
         "variables": {
           "RUST_DEFAULT_PACKAGE_RUN": "zed",
