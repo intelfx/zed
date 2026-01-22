@@ -5269,6 +5269,7 @@ version = "0.1.0"
 dependencies = [
  "anthropic",
  "anyhow",
+ "cargo_toml",
  "chrono",
  "clap",
  "client",
@@ -5308,6 +5309,7 @@ dependencies = [
  "sqlez",
  "sqlez_macros",
  "terminal_view",
+ "toml 0.8.23",
  "util",
  "wasmtime",
  "watch",
@@ -5788,6 +5790,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "buffer_diff",
+ "cargo_toml",
  "chrono",
  "clap",
  "client",
