@@ -5289,6 +5289,7 @@ version = "0.1.0"
 dependencies = [
  "anthropic",
  "anyhow",
+ "cargo_toml",
  "chrono",
  "clap",
  "client",
@@ -5845,6 +5846,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "buffer_diff",
+ "cargo_toml",
  "chrono",
  "clap",
  "client",
