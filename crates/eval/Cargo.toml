@@ -68,3 +68,7 @@ unindent.workspace = true
 util.workspace = true
 uuid.workspace = true
 watch.workspace = true
+
+[build-dependencies]
+cargo_toml.workspace = true
+toml.workspace = true
