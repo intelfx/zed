@@ -45,6 +45,25 @@ pub static RELEASE_VERSION: LazyLock<&str> =
             .unwrap_or_else(|| env!("ZED_PKG_VERSION"))
     );
 
+#[doc(hidden)]
+pub static REMOTE_SERVER_VERSION: LazyLock<String> = LazyLock::new(|| {
+    match *RELEASE_CHANNEL {
+        ReleaseChannel::Stable | ReleaseChannel::Preview => {
+            env!("ZED_PKG_VERSION").to_owned()
+        }
+        ReleaseChannel::Nightly | ReleaseChannel::Dev => {
+            let commit_sha =
+                option_env!("ZED_COMMIT_SHA").unwrap_or(RELEASE_CHANNEL.dev_name());
+            let build_id = option_env!("ZED_BUILD_ID");
+            if let Some(build_id) = build_id {
+                format!("{}+{}", build_id, commit_sha)
+            } else {
+                commit_sha.to_owned()
+            }
+        }
+    }
+});
+
 /// The app identifier for the current release channel, Windows only.
 #[cfg(target_os = "windows")]
 pub fn app_identifier() -> &'static str {
