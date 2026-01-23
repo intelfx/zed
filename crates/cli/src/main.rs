@@ -894,7 +894,7 @@ mod linux {
     use anyhow::{Context as _, anyhow};
     use cli::FORCE_CLI_MODE_ENV_VAR_NAME;
     use fork::Fork;
-    use release_channel::{APP_COMMIT_SHA, RELEASE_CHANNEL_NAME};
+    use release_channel::{APP_COMMIT_SHA, RELEASE_CHANNEL_NAME, RELEASE_VERSION};
 
     use crate::{Detect, InstalledApp};
 
@@ -933,7 +933,7 @@ mod linux {
                 } else {
                     format!("{} ", *RELEASE_CHANNEL_NAME)
                 },
-                option_env!("RELEASE_VERSION").unwrap_or_default(),
+                *RELEASE_VERSION,
                 match &*APP_COMMIT_SHA {
                     Some(commit_sha) => format!(" {} ", commit_sha.full()),
                     None => "".to_string(),
@@ -1165,7 +1165,7 @@ mod flatpak {
 #[cfg(target_os = "windows")]
 mod windows {
     use anyhow::Context;
-    use release_channel::{APP_COMMIT_SHA, RELEASE_CHANNEL_NAME, app_identifier};
+    use release_channel::{APP_COMMIT_SHA, RELEASE_CHANNEL_NAME, RELEASE_VERSION, app_identifier};
     use windows::{
         Win32::{
             Foundation::{CloseHandle, ERROR_ALREADY_EXISTS, GENERIC_WRITE, GetLastError},
@@ -1207,7 +1207,7 @@ mod windows {
                 } else {
                     format!("{} ", *RELEASE_CHANNEL_NAME)
                 },
-                option_env!("RELEASE_VERSION").unwrap_or_default(),
+                *RELEASE_VERSION,
                 match &*APP_COMMIT_SHA {
                     Some(commit_sha) => format!(" {} ", commit_sha.full()),
                     None => "".to_string(),
