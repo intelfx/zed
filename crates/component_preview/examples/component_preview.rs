@@ -28,8 +28,7 @@ fn main() {
 
         cx.on_action(quit);
         cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
-        let version = release_channel::AppVersion::load(env!("CARGO_PKG_VERSION"), None, None);
-        release_channel::init(version, cx);
+        release_channel::init(release_channel::APP_VERSION.clone(), cx);
 
         let http_client =
             ReqwestClient::user_agent("component_preview").expect("Failed to create HTTP client");
