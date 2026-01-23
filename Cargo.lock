@@ -14943,6 +14943,7 @@ version = "0.1.0"
 dependencies = [
  "gpui",
  "semver",
+ "toml_edit 0.22.27",
 ]
 
 [[package]]

@@ -1,4 +1,6 @@
+#![allow(clippy::disallowed_methods, reason = "build scripts are exempt")]
 use std::path::PathBuf;
+use std::process::Command;
 
 fn main() {
     let crate_dir = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
@@ -22,4 +24,42 @@ fn main() {
         }
     };
     println!("cargo::rustc-env=ZED_RELEASE_CHANNEL={release_channel}");
+
+    // Likewise for `$ZED_PKG_VERSION` and `../zed/Cargo.toml`.
+    println!("cargo::rerun-if-env-changed=ZED_PKG_VERSION");
+    let version = match std::env::var("ZED_PKG_VERSION").ok() {
+        Some(version) => version,
+        None => {
+            let path = crate_dir.join("../zed/Cargo.toml");
+            println!("cargo::rerun-if-changed={}", path.display());
+            let manifest = std::fs::read_to_string(path)
+                .expect("failed to read crates/zed/Cargo.toml; set $ZED_PKG_VERSION");
+            let zed_cargo_toml = toml_edit::ImDocument::parse(manifest)
+                .expect("failed to parse crates/zed/Cargo.toml");
+            zed_cargo_toml
+                .get("package")
+                .and_then(|package| package.get("version"))
+                .and_then(toml_edit::Item::as_str)
+                .expect("zed Cargo.toml must declare a package version string")
+                .to_string()
+        }
+    };
+    println!("cargo:rustc-env=ZED_PKG_VERSION={version}");
+
+    // Populate git sha environment variable if git is available
+    println!("cargo:rerun-if-changed=../../.git/logs/HEAD");
+    if let Some(output) = Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+    {
+        let git_sha = String::from_utf8_lossy(&output.stdout);
+        let git_sha = git_sha.trim();
+
+        println!("cargo:rustc-env=ZED_COMMIT_SHA={git_sha}");
+    }
+    if let Some(build_identifier) = option_env!("GITHUB_RUN_NUMBER") {
+        println!("cargo:rustc-env=ZED_BUILD_ID={build_identifier}");
+    }
 }
