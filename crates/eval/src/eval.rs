@@ -25,7 +25,7 @@ use language_model::{ConfiguredModel, LanguageModel, LanguageModelRegistry, Sele
 use node_runtime::{NodeBinaryOptions, NodeRuntime};
 use project::project_settings::ProjectSettings;
 use prompt_store::PromptBuilder;
-use release_channel::{AppCommitSha, AppVersion};
+use release_channel::APP_VERSION;
 use reqwest_client::ReqwestClient;
 use settings::{Settings, SettingsStore};
 use std::cell::RefCell;
@@ -347,15 +347,7 @@ pub struct AgentAppState {
 }
 
 pub fn init(cx: &mut App) -> Arc<AgentAppState> {
-    let app_commit_sha = option_env!("ZED_COMMIT_SHA").map(|s| AppCommitSha::new(s.to_owned()));
-
-    let app_version = AppVersion::load(
-        env!("ZED_PKG_VERSION"),
-        option_env!("ZED_BUILD_ID"),
-        app_commit_sha,
-    );
-
-    release_channel::init(app_version.clone(), cx);
+    release_channel::init(APP_VERSION.clone(), cx);
     gpui_tokio::init(cx);
 
     let settings_store = SettingsStore::new(cx, &settings::default_settings());
@@ -364,7 +356,7 @@ pub fn init(cx: &mut App) -> Arc<AgentAppState> {
     // Set User-Agent so we can download language servers from GitHub
     let user_agent = format!(
         "Zed Agent Eval/{} ({}; {})",
-        app_version,
+        *APP_VERSION,
         std::env::consts::OS,
         std::env::consts::ARCH
     );

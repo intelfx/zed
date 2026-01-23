@@ -42,7 +42,7 @@ pub enum Commands {
 #[cfg(not(windows))]
 pub fn run(command: Commands) -> anyhow::Result<()> {
     use anyhow::Context;
-    use release_channel::{AppCommitSha, AppVersion, RELEASE_CHANNEL, ReleaseChannel};
+    use release_channel::{APP_VERSION, RELEASE_CHANNEL, ReleaseChannel};
     use unix::{ExecuteProxyError, execute_proxy, execute_run};
 
     match command {
@@ -75,12 +75,7 @@ pub fn run(command: Commands) -> anyhow::Result<()> {
             // New output format. This matches all other places where AppVersion
             // is used to derive the version string.
             if full || binary_name {
-                let app_commit_sha = option_env!("ZED_COMMIT_SHA").map(|s| AppCommitSha::new(s.to_owned()));
-                let app_version = AppVersion::load(
-                    env!("ZED_PKG_VERSION"),
-                    option_env!("ZED_BUILD_ID"),
-                    app_commit_sha,
-                );
+                let app_version = &*APP_VERSION;
 
                 if binary_name {
                     let version_str = match release_channel {
