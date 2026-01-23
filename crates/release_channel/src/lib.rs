@@ -38,6 +38,13 @@ pub static APP_VERSION: LazyLock<Version> = LazyLock::new(|| {
     app_version
 });
 
+#[doc(hidden)]
+pub static RELEASE_VERSION: LazyLock<&str> =
+    LazyLock::new(||
+        option_env!("RELEASE_VERSION")
+            .unwrap_or_else(|| env!("ZED_PKG_VERSION"))
+    );
+
 /// The app identifier for the current release channel, Windows only.
 #[cfg(target_os = "windows")]
 pub fn app_identifier() -> &'static str {
