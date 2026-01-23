@@ -29,7 +29,7 @@ use node_runtime::{NodeBinaryOptions, NodeRuntime};
 use paths::logs_dir;
 use project::{project_settings::ProjectSettings, trusted_worktrees};
 use proto::CrashReport;
-use release_channel::{AppCommitSha, AppVersion, RELEASE_CHANNEL, ReleaseChannel};
+use release_channel::{APP_VERSION, RELEASE_CHANNEL, ReleaseChannel};
 use remote::{
     RemoteClient,
     json_log::LogRecord,
@@ -90,7 +90,7 @@ pub enum Commands {
 
 pub fn run(command: Commands) -> anyhow::Result<()> {
     use anyhow::Context;
-    use release_channel::{AppCommitSha, AppVersion, RELEASE_CHANNEL, ReleaseChannel};
+    use release_channel::{APP_VERSION, RELEASE_CHANNEL, ReleaseChannel};
 
     match command {
         Commands::Run {
@@ -116,12 +116,7 @@ pub fn run(command: Commands) -> anyhow::Result<()> {
             // New output format. This matches all other places where AppVersion
             // is used to derive the version string.
             if full || binary_name {
-                let app_commit_sha = option_env!("ZED_COMMIT_SHA").map(|s| AppCommitSha::new(s.to_owned()));
-                let app_version = AppVersion::load(
-                    env!("ZED_PKG_VERSION"),
-                    option_env!("ZED_BUILD_ID"),
-                    app_commit_sha,
-                );
+                let app_version = &*APP_VERSION;
 
                 if binary_name {
                     let version_str = match release_channel {
@@ -503,8 +498,10 @@ pub fn execute_run(
             session_id: id,
             zed_version: VERSION.to_owned(),
             binary: "zed-remote-server".to_string(),
-            release_channel: release_channel::RELEASE_CHANNEL_NAME.clone(),
-            commit_sha: option_env!("ZED_COMMIT_SHA").unwrap_or("no_sha").to_owned(),
+            release_channel: RELEASE_CHANNEL_NAME.clone(),
+            commit_sha: APP_COMMIT_SHA
+                .as_ref()
+                .map_or_else(|| "no_sha".to_owned(), |sha| sha.full()),
         },
         |task| {
             app.background_executor().spawn(task).detach();
@@ -553,13 +550,7 @@ pub fn execute_run(
     let git_hosting_provider_registry = Arc::new(GitHostingProviderRegistry::new());
     let run = move |cx: &mut _| {
         settings::init(cx);
-        let app_commit_sha = option_env!("ZED_COMMIT_SHA").map(|s| AppCommitSha::new(s.to_owned()));
-        let app_version = AppVersion::load(
-            env!("ZED_PKG_VERSION"),
-            option_env!("ZED_BUILD_ID"),
-            app_commit_sha,
-        );
-        release_channel::init(app_version, cx);
+        release_channel::init(APP_VERSION.clone(), cx);
         gpui_tokio::init(cx);
 
         HeadlessProject::init(cx);
@@ -761,8 +752,10 @@ pub(crate) fn execute_proxy(
             session_id: id,
             zed_version: VERSION.to_owned(),
             binary: "zed-remote-server".to_string(),
-            release_channel: release_channel::RELEASE_CHANNEL_NAME.clone(),
-            commit_sha: option_env!("ZED_COMMIT_SHA").unwrap_or("no_sha").to_owned(),
+            release_channel: RELEASE_CHANNEL_NAME.clone(),
+            commit_sha: APP_COMMIT_SHA
+                .as_ref()
+                .map_or_else(|| "no_sha".to_owned(), |sha| sha.full()),
         },
         |task| {
             smol::spawn(task).detach();
