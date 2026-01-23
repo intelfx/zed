@@ -1,6 +1,3 @@
-#![allow(clippy::disallowed_methods, reason = "build scripts are exempt")]
-use std::process::Command;
-
 fn main() {
     #[cfg(target_os = "linux")]
     {
@@ -37,32 +34,10 @@ fn main() {
         println!("cargo:rustc-link-arg=-Wl,-weak_framework,ScreenCaptureKit");
     }
 
-    // Populate git sha environment variable if git is available
-    println!("cargo:rerun-if-changed=../../.git/logs/HEAD");
     println!(
         "cargo:rustc-env=TARGET={}",
         std::env::var("TARGET").unwrap()
     );
-    if let Ok(output) = Command::new("git").args(["rev-parse", "HEAD"]).output()
-        && output.status.success()
-    {
-        let git_sha = String::from_utf8_lossy(&output.stdout);
-        let git_sha = git_sha.trim();
-
-        println!("cargo:rustc-env=ZED_COMMIT_SHA={git_sha}");
-
-        if let Some(build_identifier) = option_env!("GITHUB_RUN_NUMBER") {
-            println!("cargo:rustc-env=ZED_BUILD_ID={build_identifier}");
-        }
-
-        if let Ok(build_profile) = std::env::var("PROFILE")
-            && build_profile == "release"
-        {
-            // This is currently the best way to make `cargo build ...`'s build script
-            // to print something to stdout without extra verbosity.
-            println!("cargo::warning=Info: using '{git_sha}' hash for ZED_COMMIT_SHA env var");
-        }
-    }
 
     #[cfg(target_os = "windows")]
     {
