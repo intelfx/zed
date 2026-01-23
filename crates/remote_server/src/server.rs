@@ -29,7 +29,9 @@ use node_runtime::{NodeBinaryOptions, NodeRuntime};
 use paths::logs_dir;
 use project::{project_settings::ProjectSettings, trusted_worktrees};
 use proto::CrashReport;
-use release_channel::{APP_VERSION, RELEASE_CHANNEL, ReleaseChannel};
+use release_channel::{
+    APP_COMMIT_SHA, APP_VERSION, RELEASE_CHANNEL, RELEASE_CHANNEL_NAME, ReleaseChannel,
+};
 use remote::{
     RemoteClient,
     json_log::LogRecord,
@@ -53,7 +55,7 @@ use std::{
     mem,
     path::{Path, PathBuf},
     str::FromStr,
-    sync::{Arc, LazyLock},
+    sync::Arc,
     time::Instant,
 };
 use thiserror::Error;
@@ -89,7 +91,6 @@ pub enum Commands {
 
 pub fn run(command: Commands) -> anyhow::Result<()> {
     use anyhow::Context;
-    use release_channel::{APP_VERSION, RELEASE_CHANNEL, ReleaseChannel};
 
     match command {
         Commands::Run {
@@ -159,19 +160,6 @@ pub fn run(command: Commands) -> anyhow::Result<()> {
         }
     }
 }
-
-pub static VERSION: LazyLock<String> = LazyLock::new(|| match *RELEASE_CHANNEL {
-    ReleaseChannel::Stable | ReleaseChannel::Preview => env!("ZED_PKG_VERSION").to_owned(),
-    ReleaseChannel::Nightly | ReleaseChannel::Dev => {
-        let commit_sha = option_env!("ZED_COMMIT_SHA").unwrap_or("missing-zed-commit-sha");
-        let build_identifier = option_env!("ZED_BUILD_ID");
-        if let Some(build_id) = build_identifier {
-            format!("{build_id}+{commit_sha}")
-        } else {
-            commit_sha.to_owned()
-        }
-    }
-});
 
 fn init_logging_proxy() {
     env_logger::builder()
@@ -604,27 +592,29 @@ pub fn execute_run(
         client::telemetry::should_install_crash_handler(*RELEASE_CHANNEL);
 
     let crash_handler = if should_install_crash_handler {
-        Some(app.background_executor().spawn(crashes::init(
-            crashes::InitCrashHandler {
-                session_id: id,
-                zed_version: VERSION.to_owned(),
-                binary: "zed-remote-server".to_string(),
-                release_channel: RELEASE_CHANNEL_NAME.clone(),
-                commit_sha: APP_COMMIT_SHA
-                    .as_ref()
-                    .map_or_else(|| "no_sha".to_owned(), |sha| sha.full()),
-            },
-            {
-                let background_executor = app.background_executor();
-                move |task| {
-                    background_executor.spawn(task).detach();
-                }
-            },
-            |pid| paths::temp_dir().join(format!("zed-remote-server-crash-handler-{pid}")),
-            // we are running outside gpui
-            #[allow(clippy::disallowed_methods)]
-            |duration| FutureExt::map(Timer::after(duration), |_| ()),
-        )))
+        Some(
+            app.background_executor().spawn(crashes::init(
+                crashes::InitCrashHandler {
+                    session_id: id,
+                    zed_version: APP_VERSION.to_string(),
+                    binary: "zed-remote-server".to_string(),
+                    release_channel: RELEASE_CHANNEL_NAME.clone(),
+                    commit_sha: APP_COMMIT_SHA
+                        .as_ref()
+                        .map_or_else(|| "no_sha".to_owned(), |sha| sha.full()),
+                },
+                {
+                    let background_executor = app.background_executor();
+                    move |task| {
+                        background_executor.spawn(task).detach();
+                    }
+                },
+                |pid| paths::temp_dir().join(format!("zed-remote-server-crash-handler-{pid}")),
+                // we are running outside gpui
+                #[allow(clippy::disallowed_methods)]
+                |duration| FutureExt::map(Timer::after(duration), |_| ()),
+            )),
+        )
     } else {
         crashes::force_backtrace();
         None
@@ -715,7 +705,7 @@ pub fn execute_run(
                         proxy_url,
                         &format!(
                             "Zed-Server/{} ({}; {})",
-                            env!("CARGO_PKG_VERSION"),
+                            *APP_VERSION,
                             std::env::consts::OS,
                             std::env::consts::ARCH
                         ),
@@ -881,12 +871,13 @@ pub(crate) fn execute_proxy(
         smol::spawn(crashes::init(
             crashes::InitCrashHandler {
                 session_id: id,
-                zed_version: VERSION.to_owned(),
+                zed_version: APP_VERSION.to_string(),
                 binary: "zed-remote-proxy".to_string(),
                 release_channel: RELEASE_CHANNEL_NAME.clone(),
                 commit_sha: APP_COMMIT_SHA
                     .as_ref()
-                    .map_or_else(|| "no_sha".to_owned(), |sha| sha.full()),            },
+                    .map_or_else(|| "no_sha".to_owned(), |sha| sha.full()),
+            },
             |task| {
                 smol::spawn(task).detach();
             },
@@ -1374,10 +1365,16 @@ fn cleanup_old_binaries_wsl() {
 }
 
 fn is_new_version(version: &str) -> bool {
-    semver::Version::from_str(version)
-        .ok()
-        .zip(semver::Version::from_str(env!("ZED_PKG_VERSION")).ok())
-        .is_some_and(|(version, current_version)| version >= current_version)
+    let Ok(mut version) = semver::Version::from_str(version) else {
+        return false;
+    };
+    // Remote server binaries are named after the full `APP_VERSION`, which
+    // carries the release channel, build id and commit sha as build metadata.
+    // Build metadata does not participate in version precedence.
+    let mut current_version = APP_VERSION.clone();
+    version.build = semver::BuildMetadata::EMPTY;
+    current_version.build = semver::BuildMetadata::EMPTY;
+    version >= current_version
 }
 
 fn is_file_in_use(file_name: &OsStr) -> bool {
