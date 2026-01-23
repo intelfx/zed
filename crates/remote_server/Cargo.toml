@@ -105,9 +105,5 @@ unindent.workspace = true
 serde_json.workspace = true
 zlog.workspace = true
 
-[build-dependencies]
-cargo_toml.workspace = true
-toml.workspace = true
-
 [package.metadata.cargo-machete]
 ignored = ["git2", "rust-embed", "paths"]
