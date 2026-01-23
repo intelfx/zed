@@ -31,13 +31,18 @@ pub enum Commands {
         #[arg(long)]
         identifier: String,
     },
-    Version,
+    Version {
+        #[arg(long, conflicts_with = "binary_name")]
+        full: bool,
+        #[arg(long, conflicts_with = "full")]
+        binary_name: bool,
+    },
 }
 
 #[cfg(not(windows))]
 pub fn run(command: Commands) -> anyhow::Result<()> {
     use anyhow::Context;
-    use release_channel::{RELEASE_CHANNEL, ReleaseChannel};
+    use release_channel::{AppCommitSha, AppVersion, RELEASE_CHANNEL, ReleaseChannel};
     use unix::{execute_proxy, execute_run};
 
     match command {
@@ -58,8 +63,39 @@ pub fn run(command: Commands) -> anyhow::Result<()> {
             identifier,
             reconnect,
         } => execute_proxy(identifier, reconnect).context("running proxy on the remote server"),
-        Commands::Version => {
+        Commands::Version { full, binary_name } => {
             let release_channel = *RELEASE_CHANNEL;
+
+            // New output format. This matches all other places where AppVersion
+            // is used to derive the version string.
+            if full || binary_name {
+                let app_commit_sha = option_env!("ZED_COMMIT_SHA").map(|s| AppCommitSha::new(s.to_owned()));
+                let app_version = AppVersion::load(
+                    env!("ZED_PKG_VERSION"),
+                    option_env!("ZED_BUILD_ID"),
+                    app_commit_sha,
+                );
+
+                if binary_name {
+                    let version_str = match release_channel {
+                        ReleaseChannel::Dev => "build".to_string(),
+                        _ => app_version.to_string(),
+                    };
+                    let binary_name = format!(
+                        "zed-remote-server-{}-{}{}",
+                        release_channel.dev_name(),
+                        version_str,
+                        if cfg!(target_os = "windows") { ".exe" } else { "" }
+                    );
+                    println!("{}", binary_name);
+
+                } else {
+                    println!("{}", app_version.to_string());
+                }
+                return Ok(());
+            }
+
+            // Old, irregular output format
             match release_channel {
                 ReleaseChannel::Stable | ReleaseChannel::Preview => {
                     println!("{}", env!("ZED_PKG_VERSION"))
