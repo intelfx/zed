@@ -59,7 +59,7 @@ use project_panel::ProjectPanel;
 use prompt_store::PromptBuilder;
 use quick_action_bar::QuickActionBar;
 use recent_projects::open_remote_project;
-use release_channel::{AppCommitSha, AppVersion, ReleaseChannel};
+use release_channel::{AppCommitSha, AppVersion, RELEASE_VERSION, ReleaseChannel};
 use rope::Rope;
 use search::project_search::ProjectSearchBar;
 use settings::{
@@ -1231,7 +1231,7 @@ fn about(_: &mut Workspace, window: &mut Window, cx: &mut Context<Workspace>) {
     use std::fmt::Write;
     let release_channel = ReleaseChannel::global(cx).display_name();
     let full_version = AppVersion::global(cx);
-    let version = env!("CARGO_PKG_VERSION");
+    let version = *RELEASE_VERSION;
     let debug = if cfg!(debug_assertions) {
         "(debug)"
     } else {
