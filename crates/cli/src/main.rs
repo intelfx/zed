@@ -517,9 +517,10 @@ fn main() -> Result<()> {
         use std::os::unix::fs::PermissionsExt as _;
         fs::set_permissions(&script_path, fs::Permissions::from_mode(0o755))?;
 
+        use release_channel::RELEASE_CHANNEL_NAME;
         let status = std::process::Command::new("sh")
             .arg(&script_path)
-            .env("ZED_CHANNEL", &*release_channel::RELEASE_CHANNEL_NAME)
+            .env("ZED_CHANNEL", &*RELEASE_CHANNEL_NAME)
             .status()
             .context("Failed to execute uninstall script")?;
 
@@ -790,6 +791,10 @@ mod linux {
     use anyhow::{Context as _, anyhow};
     use cli::FORCE_CLI_MODE_ENV_VAR_NAME;
     use fork::Fork;
+    use release_channel::{
+        APP_COMMIT_SHA,
+        RELEASE_CHANNEL_NAME,
+    };
 
     use crate::{Detect, InstalledApp};
 
@@ -823,14 +828,14 @@ mod linux {
         fn zed_version_string(&self) -> String {
             format!(
                 "Zed {}{}{} – {}",
-                if *release_channel::RELEASE_CHANNEL_NAME == "stable" {
+                if *RELEASE_CHANNEL_NAME == "stable" {
                     "".to_string()
                 } else {
-                    format!("{} ", *release_channel::RELEASE_CHANNEL_NAME)
+                    format!("{} ", *RELEASE_CHANNEL_NAME)
                 },
                 option_env!("RELEASE_VERSION").unwrap_or_default(),
-                match option_env!("ZED_COMMIT_SHA") {
-                    Some(commit_sha) => format!(" {commit_sha} "),
+                match &*APP_COMMIT_SHA {
+                    Some(commit_sha) => format!(" {} ", commit_sha.full()),
                     None => "".to_string(),
                 },
                 self.0.display(),
@@ -844,7 +849,7 @@ mod linux {
 
             let sock_path = data_dir.join(format!(
                 "zed-{}.sock",
-                *release_channel::RELEASE_CHANNEL_NAME
+                *RELEASE_CHANNEL_NAME
             ));
             let sock = UnixDatagram::unbound()?;
             if sock.connect(&sock_path).is_err() {
@@ -1033,7 +1038,11 @@ mod flatpak {
 #[cfg(target_os = "windows")]
 mod windows {
     use anyhow::Context;
-    use release_channel::app_identifier;
+    use release_channel::{
+        APP_COMMIT_SHA,
+        RELEASE_CHANNEL_NAME,
+        app_identifier,
+    };
     use windows::{
         Win32::{
             Foundation::{CloseHandle, ERROR_ALREADY_EXISTS, GENERIC_WRITE, GetLastError},
@@ -1070,14 +1079,14 @@ mod windows {
         fn zed_version_string(&self) -> String {
             format!(
                 "Zed {}{}{} – {}",
-                if *release_channel::RELEASE_CHANNEL_NAME == "stable" {
+                if *RELEASE_CHANNEL_NAME == "stable" {
                     "".to_string()
                 } else {
-                    format!("{} ", *release_channel::RELEASE_CHANNEL_NAME)
+                    format!("{} ", *RELEASE_CHANNEL_NAME)
                 },
                 option_env!("RELEASE_VERSION").unwrap_or_default(),
-                match option_env!("ZED_COMMIT_SHA") {
-                    Some(commit_sha) => format!(" {commit_sha} "),
+                match &*APP_COMMIT_SHA {
+                    Some(commit_sha) => format!(" {} ", commit_sha.full()),
                     None => "".to_string(),
                 },
                 self.0.display(),
