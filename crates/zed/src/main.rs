@@ -38,12 +38,19 @@ use parking_lot::Mutex;
 use project::{project_settings::ProjectSettings, trusted_worktrees};
 use proto;
 use recent_projects::{RemoteSettings, open_remote_project};
-use release_channel::{AppCommitSha, AppVersion, ReleaseChannel};
+use release_channel::{
+    APP_COMMIT_SHA,
+    APP_VERSION,
+    AppCommitSha,
+    AppVersion,
+    RELEASE_CHANNEL,
+    RELEASE_CHANNEL_NAME,
+    ReleaseChannel,
+};
 use session::{AppSession, Session};
 use settings::{BaseKeymap, Settings, SettingsStore, watch_config_file};
 use std::{
     cell::RefCell,
-    env,
     io::{self, IsTerminal},
     path::{Path, PathBuf},
     process,
@@ -287,16 +294,11 @@ fn main() {
     }
     ztracing::init();
 
-    let version = option_env!("ZED_BUILD_ID");
-    let app_commit_sha =
-        option_env!("ZED_COMMIT_SHA").map(|commit_sha| AppCommitSha::new(commit_sha.to_string()));
-    let app_version = AppVersion::load(env!("CARGO_PKG_VERSION"), version, app_commit_sha.clone());
-
     if args.system_specs {
         let system_specs = system_specs::SystemSpecs::new_stateless(
-            app_version,
-            app_commit_sha,
-            *release_channel::RELEASE_CHANNEL,
+            APP_VERSION.clone(),
+            APP_COMMIT_SHA.clone(),
+            *RELEASE_CHANNEL,
         );
         println!("Zed System Specs (from CLI):\n{}", system_specs);
         return;
@@ -311,12 +313,10 @@ fn main() {
 
     log::info!(
         "========== starting zed version {}, sha {} ==========",
-        app_version,
-        app_commit_sha
+        *APP_VERSION,
+        APP_COMMIT_SHA
             .as_ref()
-            .map(|sha| sha.short())
-            .as_deref()
-            .unwrap_or("unknown"),
+            .map_or_else(|| "unknown".to_string(), |sha| sha.short()),
     );
 
     #[cfg(windows)]
@@ -337,17 +337,16 @@ fn main() {
             session_id,
             // strip the build and channel information from the version string, we send them separately
             zed_version: semver::Version::new(
-                app_version.major,
-                app_version.minor,
-                app_version.patch,
+                APP_VERSION.major,
+                APP_VERSION.minor,
+                APP_VERSION.patch,
             )
             .to_string(),
             binary: "zed".to_string(),
-            release_channel: release_channel::RELEASE_CHANNEL_NAME.clone(),
-            commit_sha: app_commit_sha
+            release_channel: RELEASE_CHANNEL_NAME.clone(),
+            commit_sha: APP_COMMIT_SHA
                 .as_ref()
-                .map(|sha| sha.full())
-                .unwrap_or_else(|| "no sha".to_owned()),
+                .map_or_else(|| "no_sha".to_owned(), |sha| sha.full()),
         },
         |task| {
             app.background_executor().spawn(task).detach();
@@ -462,9 +461,9 @@ fn main() {
         menu::init();
         zed_actions::init();
 
-        release_channel::init(app_version, cx);
+        release_channel::init(APP_VERSION.clone(), cx);
         gpui_tokio::init(cx);
-        if let Some(app_commit_sha) = app_commit_sha {
+        if let Some(app_commit_sha) = APP_COMMIT_SHA.clone() {
             AppCommitSha::set_global(app_commit_sha, cx);
         }
         settings::init(cx);
