@@ -24,6 +24,17 @@ pub static RELEASE_CHANNEL: LazyLock<ReleaseChannel> =
         _ => panic!("invalid release channel {}", *RELEASE_CHANNEL_NAME),
     });
 
+#[doc(hidden)]
+pub static APP_VERSION: LazyLock<Version> = LazyLock::new(|| {
+    let app_commit_sha = option_env!("ZED_COMMIT_SHA").map(|s| AppCommitSha::new(s.to_owned()));
+    let app_version = AppVersion::load(
+        env!("ZED_PKG_VERSION"),
+        option_env!("ZED_BUILD_ID"),
+        app_commit_sha,
+    );
+    app_version
+});
+
 /// The app identifier for the current release channel, Windows only.
 #[cfg(target_os = "windows")]
 pub fn app_identifier() -> &'static str {
@@ -142,6 +153,8 @@ struct GlobalReleaseChannel(ReleaseChannel);
 impl Global for GlobalReleaseChannel {}
 
 /// Initializes the release channel.
+/// TODO: use APP_VERSION global instead of the parameter
+///       the parameter override should only be needed for tests (see function below)
 pub fn init(app_version: Version, cx: &mut App) {
     cx.set_global(GlobalAppVersion(app_version));
     cx.set_global(GlobalReleaseChannel(*RELEASE_CHANNEL))
