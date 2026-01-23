@@ -855,6 +855,7 @@ mod linux {
     use release_channel::{
         APP_COMMIT_SHA,
         RELEASE_CHANNEL_NAME,
+        RELEASE_VERSION,
     };
 
     use crate::{Detect, InstalledApp};
@@ -894,7 +895,7 @@ mod linux {
                 } else {
                     format!("{} ", *RELEASE_CHANNEL_NAME)
                 },
-                option_env!("RELEASE_VERSION").unwrap_or_default(),
+                *RELEASE_VERSION,
                 match &*APP_COMMIT_SHA {
                     Some(commit_sha) => format!(" {} ", commit_sha.full()),
                     None => "".to_string(),
@@ -1102,6 +1103,7 @@ mod windows {
     use release_channel::{
         APP_COMMIT_SHA,
         RELEASE_CHANNEL_NAME,
+        RELEASE_VERSION,
         app_identifier,
     };
     use windows::{
@@ -1145,7 +1147,7 @@ mod windows {
                 } else {
                     format!("{} ", *RELEASE_CHANNEL_NAME)
                 },
-                option_env!("RELEASE_VERSION").unwrap_or_default(),
+                *RELEASE_VERSION,
                 match &*APP_COMMIT_SHA {
                     Some(commit_sha) => format!(" {} ", commit_sha.full()),
                     None => "".to_string(),
