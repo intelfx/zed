@@ -25,12 +25,15 @@ pub static RELEASE_CHANNEL: LazyLock<ReleaseChannel> =
     });
 
 #[doc(hidden)]
+pub static APP_COMMIT_SHA: LazyLock<Option<AppCommitSha>> =
+    LazyLock::new(|| option_env!("ZED_COMMIT_SHA").map(|s| AppCommitSha::new(s.to_owned())));
+
+#[doc(hidden)]
 pub static APP_VERSION: LazyLock<Version> = LazyLock::new(|| {
-    let app_commit_sha = option_env!("ZED_COMMIT_SHA").map(|s| AppCommitSha::new(s.to_owned()));
     let app_version = AppVersion::load(
         env!("ZED_PKG_VERSION"),
         option_env!("ZED_BUILD_ID"),
-        app_commit_sha,
+        APP_COMMIT_SHA.clone(),
     );
     app_version
 });
