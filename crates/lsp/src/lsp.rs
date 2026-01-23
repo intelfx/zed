@@ -50,7 +50,7 @@ const CONTENT_LEN_HEADER: &str = "Content-Length: ";
 /// The default amount of time to wait while initializing or fetching LSP servers, in seconds.
 ///
 /// Should not be used (in favor of DEFAULT_LSP_REQUEST_TIMEOUT) and is exported solely for use inside ProjectSettings defaults.
-pub const DEFAULT_LSP_REQUEST_TIMEOUT_SECS: u64 = 120;
+pub const DEFAULT_LSP_REQUEST_TIMEOUT_SECS: u64 = 600;
 /// A timeout representing the value of [DEFAULT_LSP_REQUEST_TIMEOUT_SECS].
 ///
 /// Should **only be used** in tests and as a fallback when a corresponding config value cannot be obtained!
