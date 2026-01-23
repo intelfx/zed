@@ -29,7 +29,7 @@ use node_runtime::{NodeBinaryOptions, NodeRuntime};
 use paths::logs_dir;
 use project::{project_settings::ProjectSettings, trusted_worktrees};
 use proto::CrashReport;
-use release_channel::{APP_VERSION, RELEASE_CHANNEL, ReleaseChannel};
+use release_channel::{APP_COMMIT_SHA, APP_VERSION, RELEASE_CHANNEL_NAME};
 use remote::{
     RemoteClient,
     json_log::LogRecord,
@@ -46,14 +46,13 @@ use smol::{
     stream::StreamExt as _,
 };
 use std::{
-    env,
     ffi::OsStr,
     fs::File,
     io::Write,
     mem,
     path::{Path, PathBuf},
     str::FromStr,
-    sync::{Arc, LazyLock},
+    sync::Arc,
 };
 use thiserror::Error;
 use util::{ResultExt, command::new_command};
@@ -155,19 +154,6 @@ pub fn run(command: Commands) -> anyhow::Result<()> {
         }
     }
 }
-
-pub static VERSION: LazyLock<String> = LazyLock::new(|| match *RELEASE_CHANNEL {
-    ReleaseChannel::Stable | ReleaseChannel::Preview => env!("ZED_PKG_VERSION").to_owned(),
-    ReleaseChannel::Nightly | ReleaseChannel::Dev => {
-        let commit_sha = option_env!("ZED_COMMIT_SHA").unwrap_or("missing-zed-commit-sha");
-        let build_identifier = option_env!("ZED_BUILD_ID");
-        if let Some(build_id) = build_identifier {
-            format!("{build_id}+{commit_sha}")
-        } else {
-            commit_sha.to_owned()
-        }
-    }
-});
 
 fn init_logging_proxy() {
     env_logger::builder()
@@ -484,7 +470,7 @@ pub fn execute_run(
     app.background_executor()
         .spawn(crashes::init(crashes::InitCrashHandler {
             session_id: id,
-            zed_version: VERSION.to_owned(),
+            zed_version: APP_VERSION.to_string(),
             binary: "zed-remote-server".to_string(),
             release_channel: RELEASE_CHANNEL_NAME.clone(),
             commit_sha: APP_COMMIT_SHA
@@ -570,7 +556,7 @@ pub fn execute_run(
                         proxy_url,
                         &format!(
                             "Zed-Server/{} ({}; {})",
-                            env!("CARGO_PKG_VERSION"),
+                            *APP_VERSION,
                             std::env::consts::OS,
                             std::env::consts::ARCH
                         ),
@@ -730,7 +716,7 @@ pub(crate) fn execute_proxy(
     let id = std::process::id().to_string();
     smol::spawn(crashes::init(crashes::InitCrashHandler {
         session_id: id,
-        zed_version: VERSION.to_owned(),
+        zed_version: APP_VERSION.to_string(),
         binary: "zed-remote-server".to_string(),
         release_channel: RELEASE_CHANNEL_NAME.clone(),
         commit_sha: APP_COMMIT_SHA
@@ -1218,7 +1204,7 @@ fn cleanup_old_binaries_wsl() {
 fn is_new_version(version: &str) -> bool {
     semver::Version::from_str(version)
         .ok()
-        .zip(semver::Version::from_str(env!("ZED_PKG_VERSION")).ok())
+        .zip(Some(APP_VERSION.clone()))
         .is_some_and(|(version, current_version)| version >= current_version)
 }
 
