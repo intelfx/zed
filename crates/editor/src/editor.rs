@@ -4910,17 +4910,29 @@ impl Editor {
         let mut selections = self.selections.all_adjusted(&self.display_snapshot(cx));
         let buffer = self.buffer.read(cx);
         let snapshot = buffer.snapshot(cx);
-        let rows_iter = selections.iter().map(|s| s.head().row);
-        let suggested_indents = snapshot.suggested_indents(rows_iter, cx);
 
-        let has_some_cursor_in_whitespace = selections
-            .iter()
-            .filter(|selection| selection.is_empty())
-            .any(|selection| {
-                let cursor = selection.head();
-                let current_indent = snapshot.indent_size_for_line(MultiBufferRow(cursor.row));
-                cursor.column < current_indent.len
-            });
+        let syntax_aware = selections.iter().any(|selection| {
+            buffer.language_settings_at(selection.head(), cx).auto_indent == AutoIndentMode::SyntaxAware
+        });
+
+        let (suggested_indents, has_some_cursor_in_whitespace) = if syntax_aware {
+            let rows_iter = selections.iter().map(|s| s.head().row);
+            let suggested_indents = snapshot.suggested_indents(rows_iter, cx);
+
+            let has_some_cursor_in_whitespace = selections
+                .iter()
+                .filter(|selection| selection.is_empty())
+                .any(|selection| {
+                    let cursor = selection.head();
+                    let current_indent = snapshot.indent_size_for_line(MultiBufferRow(cursor.row));
+                    cursor.column < current_indent.len
+                });
+
+            (suggested_indents, has_some_cursor_in_whitespace)
+        } else {
+            (BTreeMap::default(), false)
+        };
+
 
         let mut edits = Vec::new();
         let mut prev_edited_row = 0;
