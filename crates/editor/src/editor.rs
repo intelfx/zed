@@ -4931,10 +4931,11 @@ impl Editor {
             }
             prev_edited_row = selection.end.row;
 
+            let cursor = selection.head();
+            let settings = buffer.language_settings_at(cursor, cx);
+
             // If cursor is after a list prefix, make selection non-empty to trigger line indent
             if selection.is_empty() {
-                let cursor = selection.head();
-                let settings = buffer.language_settings_at(cursor, cx);
                 if settings.indent_list_on_tab {
                     if let Some(language) = snapshot.language_scope_at(Point::new(cursor.row, 0)) {
                         if input::is_list_prefix_row(
@@ -4957,9 +4958,6 @@ impl Editor {
                     Self::indent_selection(buffer, &snapshot, selection, &mut edits, row_delta, cx);
                 continue;
             }
-
-            let cursor = selection.head();
-            let settings = buffer.language_settings_at(cursor, cx);
 
             // Suggested indents are syntax-based (i.e., derived from the tree-sitter parsing of the document).
             // Thus, in absence of a dedicated setting, only insert suggested indents on Tab
