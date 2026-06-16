@@ -126,6 +126,7 @@ pub use multi_buffer::{
     MultiBufferOffset, MultiBufferOffsetUtf16, MultiBufferSnapshot, PathKey, RowInfo, ToOffset,
     ToPoint,
 };
+use settings::AutoIndentMode;
 pub use split::{DiffStyleControls, SplittableEditor, ToggleSplitDiff};
 pub use split_editor_view::SplitEditorView;
 pub use text::Bias;
@@ -5201,10 +5202,14 @@ impl Editor {
             }
 
             let cursor = selection.head();
-            let current_indent = snapshot.indent_size_for_line(MultiBufferRow(cursor.row));
-            if let Some(suggested_indent) =
-                suggested_indents.get(&MultiBufferRow(cursor.row)).copied()
+            let settings = buffer.language_settings_at(cursor, cx);
+
+            if settings.auto_indent != AutoIndentMode::None
+                && let Some(suggested_indent) =
+                    suggested_indents.get(&MultiBufferRow(cursor.row)).copied()
             {
+                let current_indent = snapshot.indent_size_for_line(MultiBufferRow(cursor.row));
+
                 // Don't do anything if already at suggested indent
                 // and there is any other cursor which is not
                 if has_some_cursor_in_whitespace
@@ -5243,7 +5248,6 @@ impl Editor {
             }
 
             // Otherwise, insert a hard or soft tab.
-            let settings = buffer.language_settings_at(cursor, cx);
             let tab_size = if settings.hard_tabs {
                 IndentSize::tab()
             } else {
