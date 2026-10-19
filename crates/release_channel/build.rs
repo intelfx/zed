@@ -48,6 +48,7 @@ fn main() {
 
     // Populate git sha environment variable if git is available
     println!("cargo::rerun-if-env-changed=GITHUB_RUN_NUMBER");
+    println!("cargo::rerun-if-env-changed=ZED_COMMIT_SHA");
     println!("cargo:rerun-if-changed=../../.git/logs/HEAD");
     let git_sha = match std::env::var("ZED_COMMIT_SHA").ok() {
         Some(git_sha) => {
