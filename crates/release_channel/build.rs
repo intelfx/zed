@@ -47,6 +47,7 @@ fn main() {
     println!("cargo:rustc-env=ZED_PKG_VERSION={version}");
 
     // Populate git sha environment variable if git is available
+    println!("cargo::rerun-if-env-changed=GITHUB_RUN_NUMBER");
     println!("cargo:rerun-if-changed=../../.git/logs/HEAD");
     let git_sha = match std::env::var("ZED_COMMIT_SHA").ok() {
         Some(git_sha) => {
@@ -71,7 +72,7 @@ fn main() {
     if let Some(git_sha) = git_sha {
         println!("cargo:rustc-env=ZED_COMMIT_SHA={git_sha}");
 
-        if let Some(build_identifier) = option_env!("GITHUB_RUN_NUMBER") {
+        if let Ok(build_identifier) = std::env::var("GITHUB_RUN_NUMBER") {
             println!("cargo:rustc-env=ZED_BUILD_ID={build_identifier}");
         }
 
