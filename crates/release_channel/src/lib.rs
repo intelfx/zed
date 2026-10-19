@@ -25,8 +25,15 @@ pub static RELEASE_CHANNEL: LazyLock<ReleaseChannel> =
     });
 
 #[doc(hidden)]
-pub static APP_COMMIT_SHA: LazyLock<Option<AppCommitSha>> =
-    LazyLock::new(|| option_env!("ZED_COMMIT_SHA").map(|s| AppCommitSha::new(s.to_owned())));
+pub static APP_COMMIT_SHA: LazyLock<Option<AppCommitSha>> = LazyLock::new(|| {
+    // An explicitly empty $RELEASE_SHA suppresses the commit sha, which is the
+    // only way for a packager to opt out of the sha the build script derives.
+    match option_env!("RELEASE_SHA") {
+        Some(release_sha) => Some(release_sha).filter(|sha| !sha.is_empty()),
+        None => option_env!("ZED_COMMIT_SHA"),
+    }
+    .map(|sha| AppCommitSha::new(sha.to_owned()))
+});
 
 #[doc(hidden)]
 pub static APP_VERSION: LazyLock<Version> = LazyLock::new(|| {
