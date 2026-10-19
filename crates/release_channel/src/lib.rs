@@ -30,12 +30,11 @@ pub static APP_COMMIT_SHA: LazyLock<Option<AppCommitSha>> =
 
 #[doc(hidden)]
 pub static APP_VERSION: LazyLock<Version> = LazyLock::new(|| {
-    let app_version = AppVersion::load(
-        env!("ZED_PKG_VERSION"),
+    AppVersion::load(
+        *RELEASE_VERSION,
         option_env!("ZED_BUILD_ID"),
         APP_COMMIT_SHA.clone(),
-    );
-    app_version
+    )
 });
 
 #[doc(hidden)]
